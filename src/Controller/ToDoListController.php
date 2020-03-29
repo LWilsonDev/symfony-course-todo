@@ -2,7 +2,9 @@
 
 namespace App\Controller;
 
+use App\Entity\Task;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 
 class ToDoListController extends AbstractController
@@ -12,15 +14,31 @@ class ToDoListController extends AbstractController
      */
     public function index()
     {
-        return $this->render('index.html.twig');
+        $tasks = $this->getDoctrine()->getRepository(Task::class)->findBy([],['id'=>'desc']);
+
+        return $this->render('index.html.twig',['tasks'=>$tasks] );
     }
 
     /**
      * @Route("/create", name="create_task")
      */
-    public function create()
+    public function create(Request $request)
     {
-        exit('to do: create');
+        $title = trim($request->request->get('title'));
+
+        if(empty($title)){
+            return $this->redirectToRoute('to_do_list');
+        }
+
+        $entityManager = $this->getDoctrine()->getManager();
+
+        $task =  new Task;
+        $task->setTitle($title);
+        $entityManager->persist($task);
+        $entityManager->flush();
+
+        return $this->redirectToRoute('to_do_list');
+
     }
 
     /**
@@ -28,7 +46,12 @@ class ToDoListController extends AbstractController
      */
     public function switchStatus($id)
     {
-        exit('to do: switch status '.$id);
+        $entityManager = $this->getDoctrine()->getManager();
+        $task = $entityManager->getRepository(Task::class)->find($id);
+
+        $task->setStatus(! $task->getStatus());
+        $entityManager->flush();
+        return $this->redirectToRoute('to_do_list');
     }
 
     /**
@@ -36,6 +59,10 @@ class ToDoListController extends AbstractController
      */
     public function delete($id)
     {
-        exit('to do:delete '.$id);
+       $entityManager = $this->getDoctrine()->getManager();
+       $task = $entityManager->getRepository(Task::class)->find($id);
+       $entityManager->remove($task);
+       $entityManager->flush();
+       return $this->redirectToRoute('to_do_list');
     }
 }
